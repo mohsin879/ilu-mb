@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ILU</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app" class="mint">
+
+  <!-- WELCOME -->
+  <section id="welcome" class="overlay hidden">
+    <h1>ILU 💗</h1>
+    <p class="sub">Sirf aap dono ki app</p>
+    <button class="big" id="btnCreate">✨ Naya couple banao</button>
+    <p class="or">ya</p>
+    <label for="joinCode">Partner ne code bheja hai?</label>
+    <input id="joinCode" type="text" maxlength="6" placeholder="6 akshar ka code" style="text-transform:uppercase">
+    <p class="err" id="joinErr"></p>
+    <button class="big alt" id="joinGo">Code se judo</button>
+  </section>
+
+  <!-- SIGNUP / EDIT -->
+  <section id="setup" class="overlay hidden">
+    <h1>Apni kahani 💗</h1>
+    <p class="sub">Ek baar bharo, dono ke phone mein dikhega</p>
+
+    <label for="nameA">Aapka naam</label>
+    <input id="nameA" type="text" maxlength="14" placeholder="Aapka naam">
+    <label>Aapka emoji</label>
+    <div class="picker" id="pickA"></div>
+
+    <label for="nameB">Partner ka naam</label>
+    <input id="nameB" type="text" maxlength="14" placeholder="Partner ka naam">
+    <label>Partner ka emoji</label>
+    <div class="picker" id="pickB"></div>
+
+    <label for="since">Kab se saath ho?</label>
+    <input id="since" type="date">
+
+    <p class="err" id="err"></p>
+    <button class="big" id="saveBtn">Couple banao</button>
+    <button class="big alt" id="cancelSetup">Wapas</button>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="settings" class="overlay hidden">
+    <h1>Settings</h1>
+
+    <label>Aapka couple code</label>
+    <div class="codebox">
+      <div class="code" id="codeText">------</div>
+      <div class="codehint">Ye code partner ko bhejo. Wo "Code se judo" mein likhega.</div>
+    </div>
+    <button class="big alt" id="copyCode">📋 Code copy karo</button>
+
+    <label>Colour theme (dono ke phone mein badlega)</label>
+    <button class="theme" data-theme="mint">🌸 Pink + Mint</button>
+    <button class="theme" data-theme="rosegold">✨ Rose Gold</button>
+
+    <button class="big" id="closeSettings">Wapas jao</button>
+    <button class="big alt" id="logoutBtn">Is phone se bahar niklo</button>
+  </section>
+
+  <main id="screens">
+
+    <!-- HOME -->
+    <section class="screen active" id="home">
+      <div class="head">
+        <h2>Hamara ghar</h2>
+        <button class="gear" id="openSettings" aria-label="Settings">⚙️</button>
+      </div>
+
+      <div class="together">
+        <div class="pair">
+          <div class="circle" id="avA">👨</div>
+          <div class="circle" id="avB">👩</div>
+          <span class="heart">❤️</span>
+        </div>
+        <div class="days" id="days">0</div>
+        <div id="daysLabel">din saath mein</div>
+        <div class="names" id="names"></div>
+        <button class="edit" id="editBtn">✏️ Badlo</button>
+      </div>
+
+      <h3>Aaj ka mood</h3>
+      <div class="moods" id="moods"></div>
+      <p class="partner-mood" id="partnerMood"></p>
+
+      <h3>Saath mein karo</h3>
+      <div class="tiles">
+        <button class="tile accent" id="tileWatch"><span class="te">🎬</span><span>Movie dekhein</span></button>
+        <button class="tile" data-soon="Shared Canvas"><span class="te">🎨</span><span>Shared Canvas</span></button>
+        <button class="tile" data-soon="Hamara paudha"><span class="te">🌱</span><span>Hamara paudha</span></button>
+        <button class="tile" data-soon="Love Jar"><span class="te">💌</span><span>Love Jar</span></button>
+      </div>
+    </section>
+
+    <!-- CHAT -->
+    <section class="screen" id="chat">
+      <div class="chat-head">
+        <div class="circle small" id="chatAv">👩</div>
+        <div>
+          <div class="who" id="chatName">Partner</div>
+          <div class="state">live chat</div>
+        </div>
+      </div>
+      <div id="msgs"></div>
+      <div class="composer">
+        <button id="photoBtn" aria-label="Photo bhejo">📷</button>
+        <input id="photoInput" type="file" accept="image/*" hidden>
+        <input id="msgInput" type="text" placeholder="Kuch likho..." aria-label="Message">
+        <button id="sendBtn" aria-label="Bhejo">➤</button>
+      </div>
+    </section>
+
+    <!-- WATCH -->
+    <section class="screen" id="watch">
+      <h2 class="title">Saath dekho aur suno</h2>
+
+      <input id="ytLink" type="text" placeholder="YouTube link yahan paste karo" aria-label="YouTube link">
+      <div class="linkbtns">
+        <button class="big" id="ytGo">▶ Saath chalao</button>
+        <button class="big alt" id="ytAdd">➕ Playlist mein</button>
+      </div>
+
+      <div class="player" id="player">
+        <div id="ytBox"></div>
+        <div id="ytEmpty"><span>▶</span><small>Link paste karo, dono ke phone mein ek saath chalega</small></div>
+      </div>
+
+      <button class="syncbtn" id="ytSync">📡 Mere jaise karo (sync)</button>
+
+      <div class="reactions" id="reactions">
+        <button aria-label="Dil">❤️</button>
+        <button aria-label="Hansi">😂</button>
+        <button aria-label="Wah">😍</button>
+        <button aria-label="Daraavna">😱</button>
+        <button aria-label="Aag">🔥</button>
+        <button aria-label="Taali">👏</button>
+      </div>
+
+      <h3>Hamari playlist</h3>
+      <div id="playlist"></div>
+    </section>
+
+    <!-- GAMES -->
+    <section class="screen" id="games">
+      <h2 class="title">Khelo</h2>
+      <button class="row" data-soon="Tic-tac-toe"><span class="te">❌</span><span>Tic-tac-toe<small>2 players</small></span></button>
+      <button class="row" data-soon="Ludo"><span class="te">🎲</span><span>Ludo<small>2 players</small></span></button>
+      <button class="row" data-soon="Couple Quiz"><span class="te">💘</span><span>Couple Quiz<small>Kitna jaante ho ek dusre ko?</small></span></button>
+      <button class="row" data-soon="Date Night Planner"><span class="te">🎡</span><span>Date Night Planner<small>Spinner ghumao</small></span></button>
+    </section>
+
+    <!-- MEMORIES -->
+    <section class="screen" id="memories">
+      <h2 class="title">Yaadein</h2>
+      <button class="row" data-soon="Dual Selfie"><span class="te">📸</span><span>Dual Selfie<small>Dono ki photo ek frame mein</small></span></button>
+      <button class="row" data-soon="Bucket List"><span class="te">📝</span><span>Bucket List<small>Saath karne wali cheezein</small></span></button>
+      <button class="row" data-soon="Secret Handshake"><span class="te">🔒</span><span>Secret Handshake<small>Private vault</small></span></button>
+    </section>
+
+  </main>
+
+  <nav id="nav">
+    <button data-tab="home" class="on"><span class="ic">🏠</span><span class="lbl">Home</span></button>
+    <button data-tab="chat"><span class="ic">💬</span><span class="lbl">Chat</span></button>
+    <button data-tab="watch"><span class="ic">🎬</span><span class="lbl">Dekho</span></button>
+    <button data-tab="games"><span class="ic">🎮</span><span class="lbl">Khelo</span></button>
+    <button data-tab="memories"><span class="ic">📸</span><span class="lbl">Yaadein</span></button>
+  </nav>
+
+  <div id="viewer" class="hidden"><img id="viewerImg" alt="Photo"><span>Band karne ke liye tap karo</span></div>
+  <div id="toast"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
