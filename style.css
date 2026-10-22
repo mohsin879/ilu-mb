@@ -233,6 +233,70 @@ input[type="text"], input[type="date"] {
   position: absolute; left: 50%; bottom: 84px; transform: translateX(-50%);
   background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 18px;
   font-size: 13px; font-weight: 700; opacity: 0; pointer-events: none;
-  transition: opacity .25s; width: max-content; max-width: 88%; text-align: center; z-index: 40;
+  transition: opacity .25s; width: max-content; max-width: 88%; text-align: center; z-index: 80;
 }
 #toast.show { opacity: 1; }
+
+/* ===== Video call ===== */
+.callbtn {
+  margin-left: auto; width: 44px; height: 44px; border-radius: 50%; border: none;
+  background: var(--primary); color: #fff; font-size: 20px; cursor: pointer;
+}
+.offscreen { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+#call {
+  position: absolute; inset: 0; z-index: 50; background: #111; color: #fff;
+  display: flex; flex-direction: column;
+}
+#call.hidden { display: none; }
+#remoteVideo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #111; }
+#camCanvas {
+  position: absolute; top: 14px; right: 14px; width: 104px; z-index: 3;
+  border-radius: 14px; border: 2px solid #fff; background: #000;
+}
+#callStatus {
+  position: absolute; top: 40%; left: 50%; transform: translateX(-50%); z-index: 3;
+  font-size: 16px; font-weight: 800; text-align: center; padding: 8px 16px;
+  border-radius: 999px; background: rgba(0, 0, 0, .45);
+}
+#callStatus:empty { display: none; }
+#fchips {
+  position: absolute; left: 0; right: 0; bottom: 96px; z-index: 3;
+  display: flex; gap: 8px; overflow-x: auto; padding: 4px 14px;
+}
+.fchip {
+  flex: none; padding: 8px 13px; border-radius: 999px; font-size: 13px; font-weight: 800;
+  cursor: pointer; border: 1.5px solid rgba(255, 255, 255, .6);
+  background: rgba(0, 0, 0, .45); color: #fff;
+}
+.fchip.sel { background: var(--primary); border-color: var(--primary); }
+.callbar {
+  position: absolute; left: 0; right: 0; bottom: 22px; z-index: 3;
+  display: flex; justify-content: center; gap: 16px;
+}
+.callbar button {
+  width: 56px; height: 56px; border-radius: 50%; border: none; font-size: 22px;
+  cursor: pointer; background: rgba(255, 255, 255, .22); color: #fff;
+}
+.callbar button.off { background: #fff; color: #111; }
+.callbar #btnEnd { background: #e5283c; transform: rotate(135deg); }
+#incoming {
+  position: absolute; inset: 0; z-index: 70; background: rgba(0, 0, 0, .75);
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+#incoming.hidden { display: none; }
+.incbox {
+  width: 100%; background: var(--card); color: var(--ink); border-radius: 28px;
+  padding: 26px 20px; text-align: center;
+}
+.incav {
+  width: 84px; height: 84px; margin: 0 auto 12px; border-radius: 50%; font-size: 40px;
+  display: grid; place-items: center; background: var(--pale); border: 3px solid var(--primary);
+}
+.inctext { font-size: 18px; font-weight: 800; margin-bottom: 18px; }
+.incbtns { display: flex; gap: 10px; }
+.inc {
+  flex: 1; padding: 14px; border: none; border-radius: 999px; font-size: 16px;
+  font-weight: 800; cursor: pointer; color: #fff;
+}
+.inc.no { background: #e5283c; }
+.inc.yes { background: #1f9d55; }

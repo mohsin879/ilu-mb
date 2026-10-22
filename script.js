@@ -32,7 +32,7 @@ let chat = [];
 let playlist = [];
 let draft = { emojiA: '👨', emojiB: '👩' };
 let setupMode = 'create';
-let unsubDoc = null, unsubMsgs = null, unsubLive = null, unsubList = null;
+let unsubDoc = null, unsubMsgs = null, unsubLive = null, unsubList = null, unsubCall = null;
 
 const coupleRef = () => db.collection('couples').doc(me.code);
 const liveRef = () => coupleRef().collection('live').doc('watch');
@@ -408,7 +408,8 @@ function stopListening() {
   if (unsubMsgs) unsubMsgs();
   if (unsubLive) unsubLive();
   if (unsubList) unsubList();
-  unsubDoc = unsubMsgs = unsubLive = unsubList = null;
+  if (unsubCall) unsubCall();
+  unsubDoc = unsubMsgs = unsubLive = unsubList = unsubCall = null;
 }
 
 function startListening() {
@@ -430,6 +431,7 @@ function startListening() {
   });
 
   unsubLive = liveRef().onSnapshot(onLive, () => {});
+  unsubCall = callDoc().onSnapshot(onCall, () => {});
 
   unsubList = coupleRef().collection('playlist').orderBy('ts', 'desc').limit(50).onSnapshot(s => {
     playlist = s.docs.map(d => Object.assign({ id: d.id }, d.data()));
@@ -545,6 +547,7 @@ $('logoutBtn').onclick = () => {
   if (!confirm('Is phone se bahar niklein? Data safe rahega, code se wapas ja sakte ho.')) return;
   stopListening();
   resetPlayer();
+  cleanupCall();
   localStorage.removeItem('ilu_me');
   me = null; data = null; chat = []; playlist = [];
   $('settings').classList.add('hidden');
@@ -626,6 +629,465 @@ $('photoInput').addEventListener('change', async () => {
 document.querySelectorAll('[data-soon]').forEach(el => {
   el.onclick = () => toast(el.dataset.soon + ' jaldi aayega 💗');
 });
+
+/* =====================================================
+   VIDEO CALL + FUNNY FILTERS
+   ===================================================== */
+const ICE_CONFIG = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' }
+  ]
+};
+const callDoc = () => coupleRef().collection('call').doc('state');
+const iceCol = () => coupleRef().collection('callIce');
+
+let pc = null, camStream = null, outStream = null, camFacing = 'user';
+let callId = null, callRole = null, handledId = null, incomingOffer = null;
+let iceQueue = [], remoteSet = false;
+let unsubIce = null, ringTimer = null, drawTimer = null;
+let curFilter = 'none', faceDet = null, faceLoading = false, lastFace = null, frameN = 0;
+
+const FILTER_LIST = [
+  { id: 'none', l: 'Normal' },
+  { id: 'pink', l: '🌸 Pink' },
+  { id: 'bw', l: '⚫ B&W' },
+  { id: 'vintage', l: '📷 Vintage' },
+  { id: 'glow', l: '✨ Glow' },
+  { id: 'dog', l: '🐶 Dog' },
+  { id: 'bunny', l: '🐰 Bunny' },
+  { id: 'cat', l: '🐱 Cat' },
+  { id: 'crown', l: '👑 Crown' },
+  { id: 'glasses', l: '😎 Glasses' },
+  { id: 'hearts', l: '😍 Hearts' }
+];
+
+const FILTER_CSS = {
+  none: 'none',
+  pink: 'sepia(0.35) hue-rotate(-20deg) saturate(1.8) brightness(1.05)',
+  bw: 'grayscale(1) contrast(1.1)',
+  vintage: 'sepia(0.7) contrast(1.1) brightness(0.95)',
+  glow: 'brightness(1.15) contrast(0.95) saturate(1.25)'
+};
+
+/* ----- Chehre par lagne wale stickers ----- */
+function emojiAt(ctx, ch, x, y, size) {
+  ctx.font = Math.round(size) + 'px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(ch, x, y);
+}
+function ear(ctx, x, y, rx, ry, rot, color, inner) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fill();
+  if (inner) {
+    ctx.fillStyle = inner;
+    ctx.beginPath();
+    ctx.ellipse(0, ry * 0.1, rx * 0.55, ry * 0.7, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+function tri(ctx, x, y, w, h, rot, color, inner) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(0, -h); ctx.lineTo(-w / 2, 0); ctx.lineTo(w / 2, 0);
+  ctx.closePath();
+  ctx.fill();
+  if (inner) {
+    ctx.fillStyle = inner;
+    ctx.beginPath();
+    ctx.moveTo(0, -h * 0.65); ctx.lineTo(-w * 0.28, 0); ctx.lineTo(w * 0.28, 0);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+const FACE_FILTERS = {
+  dog(ctx, f) {
+    ear(ctx, f.x + f.w * 0.02, f.y + f.h * 0.15, f.w * 0.15, f.h * 0.3, -0.4, '#8B5A2B');
+    ear(ctx, f.x + f.w * 0.98, f.y + f.h * 0.15, f.w * 0.15, f.h * 0.3, 0.4, '#8B5A2B');
+    ctx.fillStyle = '#222';
+    ctx.beginPath();
+    ctx.ellipse(f.nose.x, f.nose.y, f.w * 0.09, f.w * 0.065, 0, 0, Math.PI * 2);
+    ctx.fill();
+    emojiAt(ctx, '👅', f.nose.x, f.nose.y + f.h * 0.28, f.w * 0.22);
+  },
+  bunny(ctx, f) {
+    ear(ctx, f.x + f.w * 0.3, f.y - f.h * 0.28, f.w * 0.11, f.h * 0.42, -0.12, '#ffffff', '#ffb6c8');
+    ear(ctx, f.x + f.w * 0.7, f.y - f.h * 0.28, f.w * 0.11, f.h * 0.42, 0.12, '#ffffff', '#ffb6c8');
+    ctx.fillStyle = '#ff8fa8';
+    ctx.beginPath();
+    ctx.ellipse(f.nose.x, f.nose.y, f.w * 0.05, f.w * 0.035, 0, 0, Math.PI * 2);
+    ctx.fill();
+  },
+  cat(ctx, f) {
+    tri(ctx, f.x + f.w * 0.12, f.y + f.h * 0.08, f.w * 0.3, f.h * 0.28, -0.25, '#444', '#ffb6c8');
+    tri(ctx, f.x + f.w * 0.88, f.y + f.h * 0.08, f.w * 0.3, f.h * 0.28, 0.25, '#444', '#ffb6c8');
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = Math.max(2, f.w * 0.012);
+    for (let i = -1; i <= 1; i++) {
+      ctx.beginPath();
+      ctx.moveTo(f.nose.x - f.w * 0.12, f.nose.y + i * f.h * 0.05);
+      ctx.lineTo(f.nose.x - f.w * 0.45, f.nose.y + i * f.h * 0.1);
+      ctx.moveTo(f.nose.x + f.w * 0.12, f.nose.y + i * f.h * 0.05);
+      ctx.lineTo(f.nose.x + f.w * 0.45, f.nose.y + i * f.h * 0.1);
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#ff6f91';
+    ctx.beginPath();
+    ctx.ellipse(f.nose.x, f.nose.y, f.w * 0.05, f.w * 0.035, 0, 0, Math.PI * 2);
+    ctx.fill();
+  },
+  crown(ctx, f) {
+    emojiAt(ctx, '👑', f.x + f.w / 2, f.y - f.h * 0.02, f.w * 1.0);
+  },
+  glasses(ctx, f) {
+    emojiAt(ctx, '🕶️', f.eyes.x, f.eyes.y, f.eyes.d * 2.4);
+  },
+  hearts(ctx, f) {
+    const e1 = f.e1 || { x: f.eyes.x - f.eyes.d / 2, y: f.eyes.y };
+    const e2 = f.e2 || { x: f.eyes.x + f.eyes.d / 2, y: f.eyes.y };
+    emojiAt(ctx, '❤️', e1.x, e1.y, f.eyes.d * 0.8);
+    emojiAt(ctx, '❤️', e2.x, e2.y, f.eyes.d * 0.8);
+  }
+};
+
+function faceBox(det, W, H) {
+  const bb = det.boundingBox;
+  const norm = bb.width <= 1.5;
+  const sx = norm ? W : 1, sy = norm ? H : 1;
+  const box = { x: bb.originX * sx, y: bb.originY * sy, w: bb.width * sx, h: bb.height * sy };
+  const k = det.keypoints || [];
+  const kx = (k[0] && k[0].x > 1.5) ? 1 : W;
+  const ky = (k[0] && k[0].y > 1.5) ? 1 : H;
+  const P = i => (k[i] ? { x: k[i].x * kx, y: k[i].y * ky } : null);
+  const e1 = P(0), e2 = P(1), nose = P(2);
+  box.e1 = e1;
+  box.e2 = e2;
+  box.eyes = (e1 && e2)
+    ? { x: (e1.x + e2.x) / 2, y: (e1.y + e2.y) / 2, d: Math.hypot(e1.x - e2.x, e1.y - e2.y) }
+    : { x: box.x + box.w / 2, y: box.y + box.h * 0.38, d: box.w * 0.45 };
+  box.nose = nose || { x: box.x + box.w / 2, y: box.y + box.h * 0.58 };
+  return box;
+}
+
+async function loadFaceDetector() {
+  if (faceDet || faceLoading) return;
+  faceLoading = true;
+  toast('Face filter load ho raha hai...');
+  try {
+    const base = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
+    const mp = await import(base + '/+esm');
+    const fileset = await mp.FilesetResolver.forVisionTasks(base + '/wasm');
+    faceDet = await mp.FaceDetector.createFromOptions(fileset, {
+      baseOptions: {
+        modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite'
+      },
+      runningMode: 'VIDEO'
+    });
+    toast('Filter taiyar ✓');
+  } catch (e) {
+    toast('Face filter nahi chala: ' + e.message);
+    curFilter = 'none';
+    updateChips();
+  }
+  faceLoading = false;
+}
+
+function buildChips() {
+  const box = $('fchips');
+  box.innerHTML = '';
+  FILTER_LIST.forEach(f => {
+    const b = document.createElement('button');
+    b.className = 'fchip' + (curFilter === f.id ? ' sel' : '');
+    b.dataset.id = f.id;
+    b.textContent = f.l;
+    b.onclick = () => {
+      curFilter = f.id;
+      updateChips();
+      if (FACE_FILTERS[f.id]) loadFaceDetector();
+    };
+    box.appendChild(b);
+  });
+}
+function updateChips() {
+  document.querySelectorAll('.fchip').forEach(b =>
+    b.classList.toggle('sel', b.dataset.id === curFilter));
+}
+
+/* ----- Camera aur canvas ----- */
+function drawFrame() {
+  const v = $('camVideo'), c = $('camCanvas');
+  if (!v.videoWidth) return;
+  if (c.width !== v.videoWidth || c.height !== v.videoHeight) {
+    c.width = v.videoWidth;
+    c.height = v.videoHeight;
+  }
+  const ctx = c.getContext('2d');
+  ctx.filter = FILTER_CSS[curFilter] || 'none';
+  ctx.drawImage(v, 0, 0, c.width, c.height);
+  ctx.filter = 'none';
+  const sticker = FACE_FILTERS[curFilter];
+  if (sticker && faceDet) {
+    frameN++;
+    if (frameN % 3 === 0) {
+      try {
+        const r = faceDet.detectForVideo(v, performance.now());
+        lastFace = (r.detections && r.detections[0]) || null;
+      } catch (e) { lastFace = null; }
+    }
+    if (lastFace) sticker(ctx, faceBox(lastFace, c.width, c.height));
+  }
+}
+
+async function startCamera() {
+  camStream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: camFacing, width: { ideal: 640 }, height: { ideal: 480 } },
+    audio: true
+  });
+  const v = $('camVideo');
+  v.srcObject = camStream;
+  await v.play();
+  const c = $('camCanvas');
+  c.width = v.videoWidth || 640;
+  c.height = v.videoHeight || 480;
+  const canvasTrack = c.captureStream(24).getVideoTracks()[0];
+  outStream = new MediaStream([canvasTrack].concat(camStream.getAudioTracks()));
+  clearInterval(drawTimer);
+  drawTimer = setInterval(drawFrame, 42);
+}
+
+async function openCallUI() {
+  await startCamera();
+  buildChips();
+  $('btnMic').classList.remove('off');
+  $('btnMic').textContent = '🎤';
+  $('btnCamOff').classList.remove('off');
+  $('call').classList.remove('hidden');
+}
+
+/* ----- WebRTC ----- */
+function makePC() {
+  pc = new RTCPeerConnection(ICE_CONFIG);
+  outStream.getTracks().forEach(t => pc.addTrack(t, outStream));
+  pc.ontrack = e => {
+    const rv = $('remoteVideo');
+    if (rv.srcObject !== e.streams[0]) rv.srcObject = e.streams[0];
+  };
+  pc.onicecandidate = e => {
+    if (e.candidate && callId) {
+      iceCol().add({ callId: callId, from: me.role, c: JSON.stringify(e.candidate) });
+    }
+  };
+  pc.onconnectionstatechange = () => {
+    if (!pc) return;
+    const s = pc.connectionState;
+    if (s === 'connected') $('callStatus').textContent = '';
+    else if (s === 'connecting') $('callStatus').textContent = 'Jud raha hai...';
+    else if (s === 'failed') {
+      $('callStatus').textContent = 'Connect nahi hua';
+      toast('Call connect nahi hui. Dono ka internet check karo.');
+    }
+  };
+}
+
+function flushIce() {
+  const q = iceQueue;
+  iceQueue = [];
+  q.forEach(c => { if (pc) pc.addIceCandidate(c).catch(() => {}); });
+}
+
+function listenIce(id) {
+  if (unsubIce) unsubIce();
+  unsubIce = iceCol().where('callId', '==', id).onSnapshot(s => {
+    s.docChanges().forEach(ch => {
+      if (ch.type !== 'added') return;
+      const d = ch.doc.data();
+      if (d.from === me.role) return;
+      const cand = JSON.parse(d.c);
+      if (pc && remoteSet) pc.addIceCandidate(cand).catch(() => {});
+      else iceQueue.push(cand);
+    });
+  });
+}
+
+async function startCall() {
+  if (!me || pc) return;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    toast('Camera ke liye app ko https link se kholo');
+    return;
+  }
+  try {
+    await openCallUI();
+    callId = String(Date.now());
+    callRole = 'caller';
+    iceQueue = [];
+    remoteSet = false;
+    makePC();
+    listenIce(callId);
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    await callDoc().set({
+      callId: callId,
+      from: me.role,
+      status: 'ringing',
+      offer: { type: offer.type, sdp: offer.sdp },
+      answer: null,
+      at: Date.now()
+    });
+    $('callStatus').textContent = 'Ring ho raha hai...';
+    ringTimer = setTimeout(() => {
+      if (pc && !remoteSet) { toast('Partner ne nahi uthaya'); endCall(true); }
+    }, 45000);
+  } catch (e) {
+    toast('Call shuru nahi hui: ' + e.message);
+    cleanupCall();
+  }
+}
+
+function showIncoming() {
+  const partner = me.role === 'A' ? 'B' : 'A';
+  $('incAv').textContent = data ? data['emoji' + partner] : '💗';
+  $('incText').textContent = (data ? data['name' + partner] : 'Partner') + ' call kar raha hai 📞';
+  $('incoming').classList.remove('hidden');
+  if (navigator.vibrate) navigator.vibrate([300, 200, 300, 200, 300]);
+}
+
+async function acceptCall() {
+  $('incoming').classList.add('hidden');
+  handledId = callId;
+  try {
+    callRole = 'callee';
+    await openCallUI();
+    makePC();
+    await pc.setRemoteDescription(incomingOffer);
+    remoteSet = true;
+    flushIce();
+    const ans = await pc.createAnswer();
+    await pc.setLocalDescription(ans);
+    await callDoc().update({ status: 'active', answer: { type: ans.type, sdp: ans.sdp } });
+    $('callStatus').textContent = 'Jud raha hai...';
+  } catch (e) {
+    toast('Call nahi uthi: ' + e.message);
+    endCall(true);
+  }
+}
+
+function declineCall() {
+  handledId = callId;
+  callDoc().update({ status: 'ended' }).catch(() => {});
+  cleanupCall();
+}
+
+function onCall(snap) {
+  if (!me) return;
+  const d = snap.exists ? snap.data() : null;
+  if (!d) return;
+
+  // Partner ki call aa rahi hai
+  if (d.status === 'ringing' && d.from !== me.role && !pc && d.callId !== handledId) {
+    if (Date.now() - d.at > 60000) return;     // purani call
+    callId = d.callId;
+    incomingOffer = d.offer;
+    iceQueue = [];
+    remoteSet = false;
+    listenIce(callId);
+    showIncoming();
+    return;
+  }
+
+  // Maine call ki thi aur partner ne utha li
+  if (callRole === 'caller' && d.callId === callId && d.status === 'active' && d.answer && !remoteSet && pc) {
+    pc.setRemoteDescription(d.answer).then(() => {
+      remoteSet = true;
+      clearTimeout(ringTimer);
+      flushIce();
+      $('callStatus').textContent = 'Jud raha hai...';
+    }).catch(e => toast('Call jud nahi payi: ' + e.message));
+    return;
+  }
+
+  // Call khatam
+  if (d.status === 'ended' && d.callId === callId && callId !== null) {
+    toast('Call khatam');
+    cleanupCall();
+  }
+}
+
+function endCall(notify) {
+  if (notify && me && callId) callDoc().update({ status: 'ended' }).catch(() => {});
+  cleanupCall();
+}
+
+function cleanupCall() {
+  clearTimeout(ringTimer);
+  clearInterval(drawTimer);
+  if (unsubIce) { unsubIce(); unsubIce = null; }
+  if (pc) { pc.close(); pc = null; }
+  if (camStream) camStream.getTracks().forEach(t => t.stop());
+  camStream = null;
+  outStream = null;
+  const rv = $('remoteVideo');
+  if (rv) rv.srcObject = null;
+  $('call').classList.add('hidden');
+  $('incoming').classList.add('hidden');
+  callId = null;
+  callRole = null;
+  iceQueue = [];
+  remoteSet = false;
+  incomingOffer = null;
+}
+
+$('btnCall').onclick = startCall;
+$('incYes').onclick = acceptCall;
+$('incNo').onclick = declineCall;
+$('btnEnd').onclick = () => endCall(true);
+
+$('btnMic').onclick = () => {
+  if (!camStream) return;
+  const t = camStream.getAudioTracks()[0];
+  if (!t) return;
+  t.enabled = !t.enabled;
+  $('btnMic').textContent = t.enabled ? '🎤' : '🔇';
+  $('btnMic').classList.toggle('off', !t.enabled);
+};
+
+$('btnCamOff').onclick = () => {
+  if (!outStream) return;
+  const t = outStream.getVideoTracks()[0];
+  if (!t) return;
+  t.enabled = !t.enabled;
+  $('btnCamOff').classList.toggle('off', !t.enabled);
+};
+
+$('btnFlip').onclick = async () => {
+  if (!camStream) return;
+  const next = camFacing === 'user' ? 'environment' : 'user';
+  try {
+    const ns = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: next, width: { ideal: 640 }, height: { ideal: 480 } },
+      audio: false
+    });
+    const audio = camStream.getAudioTracks();
+    camStream.getVideoTracks().forEach(t => t.stop());
+    camStream = new MediaStream(ns.getVideoTracks().concat(audio));
+    camFacing = next;
+    $('camVideo').srcObject = camStream;
+    await $('camVideo').play();
+  } catch (e) {
+    toast('Camera nahi badla');
+  }
+};
 
 /* ---------- Shuruaat ---------- */
 if (me) {

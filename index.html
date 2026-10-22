@@ -105,6 +105,7 @@
           <div class="who" id="chatName">Partner</div>
           <div class="state">live chat</div>
         </div>
+        <button class="callbtn" id="btnCall" aria-label="Video call">📹</button>
       </div>
       <div id="msgs"></div>
       <div class="composer">
@@ -171,6 +172,33 @@
     <button data-tab="games"><span class="ic">🎮</span><span class="lbl">Khelo</span></button>
     <button data-tab="memories"><span class="ic">📸</span><span class="lbl">Yaadein</span></button>
   </nav>
+
+  <!-- VIDEO CALL -->
+  <div id="call" class="hidden">
+    <video id="remoteVideo" autoplay playsinline></video>
+    <canvas id="camCanvas"></canvas>
+    <video id="camVideo" class="offscreen" autoplay playsinline muted></video>
+    <div id="callStatus"></div>
+    <div id="fchips"></div>
+    <div class="callbar">
+      <button id="btnMic" aria-label="Mic">🎤</button>
+      <button id="btnCamOff" aria-label="Camera on/off">📷</button>
+      <button id="btnFlip" aria-label="Camera badlo">🔄</button>
+      <button id="btnEnd" aria-label="Call kaato">📞</button>
+    </div>
+  </div>
+
+  <!-- INCOMING CALL -->
+  <div id="incoming" class="hidden">
+    <div class="incbox">
+      <div class="incav" id="incAv">👩</div>
+      <div class="inctext" id="incText">Partner call kar raha hai</div>
+      <div class="incbtns">
+        <button class="inc no" id="incNo">✖ Kaato</button>
+        <button class="inc yes" id="incYes">✔ Utha lo</button>
+      </div>
+    </div>
+  </div>
 
   <div id="viewer" class="hidden"><img id="viewerImg" alt="Photo"><span>Band karne ke liye tap karo</span></div>
   <div id="toast"></div>
