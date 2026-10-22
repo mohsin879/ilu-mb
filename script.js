@@ -1,4 +1,4 @@
-const firebaseConfig = {
+﻿const firebaseConfig = {
   apiKey: "AIzaSyCzWj6i1N2a9CNTit2acENaXfqBRlYRpLo",
   authDomain: "ilu-app-3e2f8.firebaseapp.com",
   projectId: "ilu-app-3e2f8",
@@ -6,6 +6,13 @@ const firebaseConfig = {
   messagingSenderId: "738719127887",
   appId: "1:738719127887:web:a47714d50550aa78c04d3a"
 };
+
+// ===== TURN (free relay server) =====
+// metered.ca par free account banao, phir neeche apna app naam aur API key likho.
+// Khali rahe to sirf STUN chalega (jaisa abhi hai).
+const TURN_APP = 'ilu-mohsin';   // jaise: 'ilu'  (matlab https://ilu.metered.live)
+const TURN_KEY = 'e361357d1c566d9b83be150591ccc08acf17';   // aapki API key
+const TURN_EXTRA = []; // zaroorat ho to yahan seedhe username/password wale servers bhi daal sakte ho
 
 // Koi bhi galti ho to screen par dikhegi
 function showError(msg) {
@@ -877,8 +884,34 @@ async function openCallUI() {
 }
 
 /* ----- WebRTC ----- */
+let iceCfg = null;
+async function getIceConfig() {
+  const servers = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' }
+  ].concat(TURN_EXTRA);
+  if (TURN_APP && TURN_KEY) {
+    try {
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 6000);
+      const r = await fetch('https://' + TURN_APP + '.metered.live/api/v1/turn/credentials?apiKey=' +
+        encodeURIComponent(TURN_KEY), { signal: ctl.signal });
+      clearTimeout(timer);
+      if (r.ok) {
+        const list = await r.json();
+        if (Array.isArray(list)) return { iceServers: servers.concat(list) };
+      }
+      toast('TURN nahi mila, sirf STUN chalega');
+    } catch (e) {
+      toast('TURN load nahi hua, sirf STUN chalega');
+    }
+  }
+  return { iceServers: servers };
+}
+
+
 function makePC() {
-  pc = new RTCPeerConnection(ICE_CONFIG);
+  pc = new RTCPeerConnection(iceCfg || ICE_CONFIG);
   outStream.getTracks().forEach(t => pc.addTrack(t, outStream));
   pc.ontrack = e => {
     const rv = $('remoteVideo');
@@ -933,6 +966,7 @@ async function startCall() {
     callRole = 'caller';
     iceQueue = [];
     remoteSet = false;
+    iceCfg = await getIceConfig();
     makePC();
     listenIce(callId);
     const offer = await pc.createOffer();
@@ -969,6 +1003,7 @@ async function acceptCall() {
   try {
     callRole = 'callee';
     await openCallUI();
+    iceCfg = await getIceConfig();
     makePC();
     await pc.setRemoteDescription(incomingOffer);
     remoteSet = true;
