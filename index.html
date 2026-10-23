@@ -91,9 +91,9 @@
       <h3>Saath mein karo</h3>
       <div class="tiles">
         <button class="tile accent" id="tileWatch"><span class="te">🎬</span><span>Movie dekhein</span></button>
-        <button class="tile" data-soon="Shared Canvas"><span class="te">🎨</span><span>Shared Canvas</span></button>
-        <button class="tile" data-soon="Hamara paudha"><span class="te">🌱</span><span>Hamara paudha</span></button>
-        <button class="tile" data-soon="Love Jar"><span class="te">💌</span><span>Love Jar</span></button>
+        <button class="tile" id="tileCanvas"><span class="te">🎨</span><span>Shared Canvas</span></button>
+        <button class="tile" id="tilePlant"><span class="te">🌱</span><span>Hamara paudha</span></button>
+        <button class="tile" id="tileJar"><span class="te">💌</span><span>Love Jar</span></button>
       </div>
     </section>
 
@@ -148,19 +148,143 @@
 
     <!-- GAMES -->
     <section class="screen" id="games">
-      <h2 class="title">Khelo</h2>
-      <button class="row" data-soon="Tic-tac-toe"><span class="te">❌</span><span>Tic-tac-toe<small>2 players</small></span></button>
-      <button class="row" data-soon="Ludo"><span class="te">🎲</span><span>Ludo<small>2 players</small></span></button>
-      <button class="row" data-soon="Couple Quiz"><span class="te">💘</span><span>Couple Quiz<small>Kitna jaante ho ek dusre ko?</small></span></button>
-      <button class="row" data-soon="Date Night Planner"><span class="te">🎡</span><span>Date Night Planner<small>Spinner ghumao</small></span></button>
+      <div id="gameMenu">
+        <h2 class="title">Khelo</h2>
+        <button class="row" data-game="ttt"><span class="te">❌</span><span>Tic-tac-toe<small>2 players, live</small></span></button>
+        <button class="row" data-game="rps"><span class="te">✊</span><span>Rock Paper Scissors<small>Chhupa ke chuno, phir dikhao</small></span></button>
+        <button class="row" data-game="quiz"><span class="te">💘</span><span>Couple Quiz<small>Kitna jaante ho ek dusre ko?</small></span></button>
+        <button class="row" data-game="date"><span class="te">🎡</span><span>Date Night Planner<small>Spinner ghumao</small></span></button>
+        <button class="row" data-game="canvas"><span class="te">🎨</span><span>Shared Canvas<small>Saath mein drawing</small></span></button>
+      </div>
+
+      <div id="gamePanel" class="hidden">
+        <button class="backbtn" id="gameBack">← Khelo</button>
+
+        <div class="gp hidden" id="gp-ttt">
+          <h3>Tic-tac-toe</h3>
+          <div id="tttStatus" class="gstatus"></div>
+          <div id="tttBoard" class="tttboard"></div>
+          <div id="tttScore" class="gscore"></div>
+          <button class="big alt" id="tttNew">🔄 Naya game</button>
+        </div>
+
+        <div class="gp hidden" id="gp-rps">
+          <h3>Rock Paper Scissors</h3>
+          <div id="rpsInfo" class="gstatus"></div>
+          <div class="rpsbtns" id="rpsBtns">
+            <button data-pick="rock" aria-label="Patthar">✊</button>
+            <button data-pick="paper" aria-label="Kagaz">✋</button>
+            <button data-pick="scissors" aria-label="Kainchi">✌️</button>
+          </div>
+          <div id="rpsResult" class="gresult"></div>
+          <div id="rpsScore" class="gscore"></div>
+          <button class="big alt hidden" id="rpsNext">Agla round ➜</button>
+        </div>
+
+        <div class="gp hidden" id="gp-quiz">
+          <h3>Couple Quiz 💘</h3>
+          <div id="quizBox"></div>
+          <div id="quizScore" class="gscore"></div>
+        </div>
+
+        <div class="gp hidden" id="gp-date">
+          <h3>Date Night Planner 🎡</h3>
+          <p class="sub">Spinner ghumao, dono ko ek hi idea dikhega.</p>
+          <div id="dateResult" class="dateres">Ghumao aur dekho 🎲</div>
+          <button class="big" id="dateSpin">🎡 Ghumao</button>
+        </div>
+
+        <div class="gp hidden" id="gp-canvas">
+          <h3>Shared Canvas 🎨</h3>
+          <canvas id="shareCanvas" width="600" height="600"></canvas>
+          <div class="ctools" id="cColors"></div>
+          <div class="ctools">
+            <button data-w="4" class="sel">● Patla</button>
+            <button data-w="10">● Mota</button>
+            <button data-w="22">● Bahut mota</button>
+          </div>
+          <div class="ctools">
+            <button id="cUndo">↩ Undo</button>
+            <button id="cClear">🧹 Saaf karo</button>
+          </div>
+          <p class="note">Aapki line poori karte hi partner ke canvas par dikh jati hai. Safed rang eraser ka kaam karta hai.</p>
+        </div>
+      </div>
     </section>
 
     <!-- MEMORIES -->
     <section class="screen" id="memories">
-      <h2 class="title">Yaadein</h2>
-      <button class="row" data-soon="Dual Selfie"><span class="te">📸</span><span>Dual Selfie<small>Dono ki photo ek frame mein</small></span></button>
-      <button class="row" data-soon="Bucket List"><span class="te">📝</span><span>Bucket List<small>Saath karne wali cheezein</small></span></button>
-      <button class="row" data-soon="Secret Handshake"><span class="te">🔒</span><span>Secret Handshake<small>Private vault</small></span></button>
+      <div id="memMenu">
+        <h2 class="title">Yaadein</h2>
+        <button class="row" data-mem="selfie"><span class="te">📸</span><span>Dual Selfie<small>Dono ki photo ek frame mein</small></span></button>
+        <button class="row" data-mem="bucket"><span class="te">📝</span><span>Bucket List<small>Saath karne wali cheezein</small></span></button>
+        <button class="row" data-mem="jar"><span class="te">💌</span><span>Love Jar<small>Chhote chhote pyaar bhare note</small></span></button>
+        <button class="row" data-mem="plant"><span class="te">🌱</span><span>Hamara paudha<small>Dono paani do to badhta hai</small></span></button>
+        <button class="row" data-mem="lock"><span class="te">🔒</span><span>Secret Handshake<small>Dono ka mila hua PIN lock</small></span></button>
+      </div>
+
+      <div id="memPanel" class="hidden">
+        <button class="backbtn" id="memBack">← Yaadein</button>
+
+        <div class="mp hidden" id="mp-selfie">
+          <h3>Dual Selfie 📸</h3>
+          <p class="sub">Dono apni apni selfie lo, app ek frame bana degi.</p>
+          <div id="selfieStatus" class="gstatus"></div>
+          <img id="selfieMine" class="selfiemine hidden" alt="Meri selfie">
+          <canvas id="selfieCanvas" width="1000" height="640" class="hidden"></canvas>
+          <input type="file" id="selfiePick" accept="image/*" capture="user" hidden>
+          <button class="big" id="selfieBtn">📸 Meri selfie lo</button>
+          <button class="big alt hidden" id="selfieSave">📥 Frame save karo</button>
+        </div>
+
+        <div class="mp hidden" id="mp-bucket">
+          <h3>Bucket List 📝</h3>
+          <div class="addrow">
+            <input type="text" id="bucketInput" maxlength="80" placeholder="Saath mein kya karna hai?">
+            <button id="bucketAdd" aria-label="Jodo">➕</button>
+          </div>
+          <div id="bucketProg" class="gscore"></div>
+          <div id="bucketList"></div>
+        </div>
+
+        <div class="mp hidden" id="mp-jar">
+          <h3>Love Jar 💌</h3>
+          <p class="sub">Jab mann ho ek pyaara note daalo. Partner jab chahe ek note nikaal sakta hai.</p>
+          <div class="addrow">
+            <input type="text" id="jarInput" maxlength="200" placeholder="Partner ke liye ek chhota note...">
+            <button id="jarAdd" aria-label="Jar mein daalo">💌</button>
+          </div>
+          <div id="jarInfo" class="gscore"></div>
+          <button class="big" id="jarDraw">🎁 Ek note nikalo</button>
+          <div id="jarNote" class="jarnote hidden"></div>
+          <h3>Pehle nikale hue notes</h3>
+          <div id="jarOld"></div>
+        </div>
+
+        <div class="mp hidden" id="mp-plant">
+          <h3>Hamara paudha 🌱</h3>
+          <div id="plantEmoji" class="plantemoji">🌰</div>
+          <div id="plantStage" class="gstatus"></div>
+          <div id="plantStreak" class="gscore"></div>
+          <div id="plantStatus" class="gscore"></div>
+          <button class="big" id="plantWater">💧 Paani do</button>
+          <p class="note">Paudha tabhi badhta hai jab aap dono usi din paani dete ho.</p>
+        </div>
+
+        <div class="mp hidden" id="mp-lock">
+          <h3>Secret Handshake 🔒</h3>
+          <p class="sub">Dono ka ek hi PIN. Ek badlega to dono ka badal jayega.</p>
+          <div id="lockStatus" class="gstatus"></div>
+          <label for="pinNew">Naya PIN (4 ank)</label>
+          <input type="password" id="pinNew" inputmode="numeric" maxlength="4" placeholder="••••">
+          <label for="pinNew2">PIN dobara likho</label>
+          <input type="password" id="pinNew2" inputmode="numeric" maxlength="4" placeholder="••••">
+          <p class="err" id="pinErr"></p>
+          <button class="big" id="pinSet">PIN set karo (dono ke liye)</button>
+          <button class="big alt" id="lockToggle">Is phone par lock: OFF</button>
+          <p class="note">Ye lock sirf phone par jhaank-jhaank rokne ke liye hai, asli encryption nahi.</p>
+        </div>
+      </div>
     </section>
 
   </main>
@@ -197,6 +321,18 @@
         <button class="inc no" id="incNo">✖ Kaato</button>
         <button class="inc yes" id="incYes">✔ Utha lo</button>
       </div>
+    </div>
+  </div>
+
+  <!-- APP LOCK -->
+  <div id="lock" class="hidden">
+    <div class="lockbox">
+      <div class="lockicon">🔒</div>
+      <div class="lockttl">ILU lock hai</div>
+      <div id="pinDots" class="pindots"></div>
+      <div id="lockMsg" class="lockmsg"></div>
+      <div class="pinpad" id="pinpad"></div>
+      <button class="linkbtn" id="pinForgot">PIN bhool gaye?</button>
     </div>
   </div>
 
