@@ -1,0 +1,9 @@
+{
+  "appId": "com.ilu.couple",
+  "appName": "ILU",
+  "webDir": "www",
+  "server": {
+    "url": "https://mohsin879.github.io/ilu-mb/",
+    "androidScheme": "https"
+  }
+}
