@@ -57,7 +57,7 @@ function toast(msg) {
 function makeCode() {
   const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let s = '';
-  for (let i = 0; i < 6; i++) s += c[Math.floor(Math.random() * c.length)];
+  for (let i = 0; i < 10; i++) s += c[Math.floor(Math.random() * c.length)];
   return s;
 }
 
@@ -487,7 +487,7 @@ $('btnCreate').onclick = () => {
 $('joinGo').onclick = async () => {
   const code = $('joinCode').value.trim().toUpperCase();
   $('joinErr').textContent = '';
-  if (code.length !== 6) { $('joinErr').textContent = '6 akshar ka code likho.'; return; }
+  if (code.length < 6 || code.length > 10) { $('joinErr').textContent = 'Poora couple code likho.'; return; }
   try {
     const snap = await db.collection('couples').doc(code).get();
     if (!snap.exists) { $('joinErr').textContent = 'Ye code galat hai.'; return; }
@@ -1912,7 +1912,7 @@ async function pinDigit(d) {
   });
 })();
 $('pinForgot').onclick = () => {
-  const code = (prompt('Apna 6 akshar ka couple code likho (Settings mein milta hai):') || '').trim().toUpperCase();
+  const code = (prompt('Apna couple code likho (Settings mein milta hai):') || '').trim().toUpperCase();
   if (me && code === me.code) {
     localStorage.removeItem('ilu_lock');
     localStorage.removeItem('ilu_pinhash');
